@@ -1,54 +1,42 @@
-version: "3.7"
+version: '3.8'
+
 services:
-  mongodb1:
-    image: mongo:4.0.3
-    container_name: mongodb1
-    networks:
-      - mongodb
+  # 主节点
+  mongo0:
+    image: mongo-replica-set
+    restart: always
+    privileged: true
     ports:
-      - "30001:27017"
+      - 27017:27017
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=123456x
-    volumes:
-      - /data/mongo/mongdb1:/data/db
-      - mongo_key:/mongo
-    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
-
-  mongodb2:
-    image: mongo:4.0.3
-    container_name: mongodb2
-    networks:
-      - mongodb
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    command: --replSet replica-set --keyFile /root/mongod/mongo.key
+  # 副节点
+  mongo1:
+    image: mongo-replica-set
+    restart: always
+    privileged: true
     ports:
-      - "30002:27017"
+      - 27018:27017
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=123456
-    volumes:
-      - /data/mongo/mongdb2:/data/db
-      - mongo_key:/mongo
-    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
-
-  mongodb3:
-    image: mongo:4.0.3
-    container_name: mongodb3
-    networks:
-      - mongodb
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    command: --replSet replica-set --keyFile /root/mongod/mongo.key
+  # 仲裁节点
+  mongo2:
+    image: mongo-replica-set
+    restart: always
+    privileged: true
     ports:
-      - "30003:27017"
+      - 27019:27017
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=123456
-    volumes:
-      - /data/mongo/mongdb3:/data/db
-      - mongo_key:/mongo
-    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    command: --replSet replica-set --keyFile /root/mongod/mongo.key
 
 networks:
-  mongodb:
-    driver: bridge
-    name: mongodb
-
-volumes:
-  mongo_key:
+  # 默认使用自己创建的网络
+  default:
+    external:
+      name: local-net
