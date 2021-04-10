@@ -1,0 +1,54 @@
+version: "3.7"
+services:
+  mongodb1:
+    image: mongo:4.0.3
+    container_name: mongodb1
+    networks:
+      - mongodb
+    ports:
+      - "30001:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=123456x
+    volumes:
+      - /data/mongo/mongdb1:/data/db
+      - mongo_key:/mongo
+    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
+
+  mongodb2:
+    image: mongo:4.0.3
+    container_name: mongodb2
+    networks:
+      - mongodb
+    ports:
+      - "30002:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+    volumes:
+      - /data/mongo/mongdb2:/data/db
+      - mongo_key:/mongo
+    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
+
+  mongodb3:
+    image: mongo:4.0.3
+    container_name: mongodb3
+    networks:
+      - mongodb
+    ports:
+      - "30003:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+    volumes:
+      - /data/mongo/mongdb3:/data/db
+      - mongo_key:/mongo
+    command: ["mongod","--replSet","BigBoss","--keyFile","/mongo/mongo.key","--directoryperdb"]
+
+networks:
+  mongodb:
+    driver: bridge
+    name: mongodb
+
+volumes:
+  mongo_key:
