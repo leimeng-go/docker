@@ -1,5 +1,6 @@
-From mongo:latest
-
-RUN mkdir -p /data/key && openssl rand -base64 756 > /data/key/replica-set.key
-
-RUN chown mongodb:mongodb /data/key/replica-set.key && chmod 400 /data/key/replica-set.key
+FROM mongo:latest
+#将秘钥文件复制到镜像中
+COPY auth.key /app/auth.key
+RUN chown -R mongodb:mongodb /app/auth.key
+#设置秘钥文件权限，这一步非常关键
+RUN chmod 600 /app/auth.key

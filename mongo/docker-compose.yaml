@@ -1,42 +1,56 @@
-version: '3.8'
-
+version: "3.1"
 services:
-  # 主节点
-  mongo0:
-    image: mongo-replica-set
+  mongo-1:
+    image: mongo-replset
+    hostname: mongo-1
     restart: always
-    privileged: true
     ports:
-      - 27017:27017
+      - 27011:27011
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 123456
-    command: --replSet replica-set --keyFile /root/mongod/mongo.key
-  # 副节点
-  mongo1:
-    image: mongo-replica-set
+      MONGO_INITDB_ROOT_PASSWORD: 181205
+    command:
+      - --port
+      - "27011"
+      - --replSet
+      - rs
+      - --keyFile
+      - /app/auth.key
+  mongo-2:
+    image: mongo-replset
+    hostname: mongo-2
     restart: always
-    privileged: true
     ports:
-      - 27018:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 123456
-    command: --replSet replica-set --keyFile /root/mongod/mongo.key
-  # 仲裁节点
-  mongo2:
-    image: mongo-replica-set
+      - 27012:27012
+    command:
+      - --port
+      - "27012"
+      - --replSet
+      - rs
+      - --keyFile
+      - /app/auth.key
+  mongo-3:
+    image: mongo-replset
+    hostname: mongo-3
     restart: always
-    privileged: true
     ports:
-      - 27019:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 123456
-    command: --replSet replica-set --keyFile /root/mongod/mongo.key
-
-networks:
-  # 默认使用自己创建的网络
-  default:
-    external:
-      name: local-net
+      - 27013:27013
+    command:
+      - --port
+      - "27013"
+      - --replSet
+      - rs
+      - --keyFile
+      - /app/auth.key
+  mongo-init:
+    image: mongo:latest
+    depends_on:
+      - mongo-1
+      - mongo-2
+      - mongo-3
+    restart: on-failure:5
+    command:
+      - mongo
+      - mongodb://root:181205@mongo-1:27011/admin
+      - --eval
+      - 'rs.initiate({ _id: "rs", members: [{_id:1,host:"mongo-1:27011"},{_id:2,host:"mongo-2:27012"},{_id:3,host:"mongo-3:27013"}]})'
