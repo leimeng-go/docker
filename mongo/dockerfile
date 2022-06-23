@@ -1,4 +1,6 @@
-FROM mongo:latest
+FROM mongo:4.0.28
+
+LABEL maintainer="leimeng"
 #将秘钥文件复制到镜像中
 COPY auth.key /app/auth.key
 RUN chown -R mongodb:mongodb /app/auth.key

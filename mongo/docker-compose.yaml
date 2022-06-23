@@ -1,14 +1,24 @@
-version: "3.1"
+version: '3.5'
+# 网络配置
+networks:
+  backend: 
+    driver: ${NETWORKS_DRIVER}
+
 services:
   mongo-1:
-    image: mongo-replset
-    hostname: mongo-1
+    build: 
+      context: .
     restart: always
+    hostname: mongo-1
     ports:
       - 27011:27011
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 181205
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER_NAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_USER_PASSWORD}
+    privileged: true  
+    tty: true
+    networks:
+      - backend
     command:
       - --port
       - "27011"
@@ -17,11 +27,14 @@ services:
       - --keyFile
       - /app/auth.key
   mongo-2:
-    image: mongo-replset
-    hostname: mongo-2
+    build:
+      context: ./
+    hostname: mongo-2  
     restart: always
     ports:
       - 27012:27012
+    networks:
+      - backend  
     command:
       - --port
       - "27012"
@@ -30,11 +43,15 @@ services:
       - --keyFile
       - /app/auth.key
   mongo-3:
-    image: mongo-replset
-    hostname: mongo-3
+    build: 
+      context: ./
+    hostname: mongo-3  
     restart: always
     ports:
       - 27013:27013
+    privileged: true  
+    networks:
+      - backend
     command:
       - --port
       - "27013"
@@ -43,14 +60,17 @@ services:
       - --keyFile
       - /app/auth.key
   mongo-init:
-    image: mongo:latest
+    build:
+      context: ./
     depends_on:
       - mongo-1
       - mongo-2
       - mongo-3
     restart: on-failure:5
+    networks:
+      - backend
     command:
       - mongo
-      - mongodb://root:181205@mongo-1:27011/admin
+      - mongodb://root:123456@mongo-1:27011/admin
       - --eval
       - 'rs.initiate({ _id: "rs", members: [{_id:1,host:"mongo-1:27011"},{_id:2,host:"mongo-2:27012"},{_id:3,host:"mongo-3:27013"}]})'
