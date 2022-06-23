@@ -2,7 +2,8 @@ version: '3.5'
 # 网络配置
 networks:
   backend: 
-    driver: ${NETWORKS_DRIVER}
+    driver:
+      bridge
 
 services:
   mongo-1:
@@ -62,6 +63,10 @@ services:
   mongo-init:
     build:
       context: ./
+    links:
+      - mongo-1
+      - mongo-2
+      - mongo-3
     depends_on:
       - mongo-1
       - mongo-2
@@ -70,6 +75,15 @@ services:
     networks:
       - backend
     command:
+      - ./app/wait-for-it.sh
+      - "mongo-1:27011"
+      - "--"
+      - ./app/wait-for-it.sh
+      - "mongo-2:27012"
+      - "--"
+      - ./app/wait-for-it.sh
+      - "mongo-3:27013"
+      - "--"
       - mongo
       - mongodb://root:123456@mongo-1:27011/admin
       - --eval
