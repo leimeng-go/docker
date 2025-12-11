@@ -1,0 +1,110 @@
+version: '3.8'
+services:
+  mongo1:
+    image: mongo:4.0.28
+    container_name: mongo1
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 181205
+    volumes:
+      - mongo1_data:/data/db
+      - ./mongo-keyfile:/data/configdb/mongo-keyfile
+    networks:
+      - mongo_net
+    entrypoint:
+      - bash
+      - -c
+      - |
+        chmod 400 /data/configdb/mongo-keyfile
+        chown 999:999 /data/configdb/mongo-keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /data/configdb/mongo-keyfile
+
+  mongo2:
+    image: mongo:4.0.28
+    container_name: mongo2
+    restart: always
+    ports:
+      - 27018:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 181205
+    volumes:
+      - mongo2_data:/data/db
+      - ./mongo-keyfile:/data/configdb/mongo-keyfile
+    networks:
+      - mongo_net
+    entrypoint:
+      - bash
+      - -c
+      - |
+        chmod 400 /data/configdb/mongo-keyfile
+        chown 999:999 /data/configdb/mongo-keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /data/configdb/mongo-keyfile
+    depends_on:
+      - mongo1
+
+  mongo3:
+    image: mongo:4.0.28
+    container_name: mongo3
+    restart: always
+    ports:
+      - 27019:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 181205
+    volumes:
+      - mongo3_data:/data/db
+      - ./mongo-keyfile:/data/configdb/mongo-keyfile
+    networks:
+      - mongo_net
+    entrypoint:
+      - bash
+      - -c
+      - |
+        chmod 400 /data/configdb/mongo-keyfile
+        chown 999:999 /data/configdb/mongo-keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /data/configdb/mongo-keyfile
+    depends_on:
+      - mongo1
+
+  mongo-init:
+    image: mongo:4.0.28
+    restart: "no"
+    networks:
+      - mongo_net
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    command: >
+      bash -c "
+      echo 'Waiting for MongoDB to start...' &&
+      sleep 30 &&
+      mongo --host mongo1:27017 -u admin -p 181205 --eval '
+      rs.initiate({
+        _id: \"rs0\",
+        members: [
+          { _id: 0, host: \"mongo1:27017\",priority: 2 },
+          { _id: 1, host: \"mongo2:27017\",priority: 1 },
+          { _id: 2, host: \"mongo3:27017\",priority: 1 }
+        ]
+      });
+      ' &&
+      echo 'Replica set initialization completed' &&
+      exit 0
+      "
+    deploy:
+      restart_policy:
+        condition: none
+
+networks:
+  mongo_net:
+    driver: bridge
+
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:  

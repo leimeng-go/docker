@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --requirepass 181205 --appendonly yes
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - redis_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "181205", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  redis_net:
+    driver: bridge
+
+volumes:
+  redis_data:

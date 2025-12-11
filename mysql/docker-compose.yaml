@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    restart: always
+    ports:
+      - "33006:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 181205
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 181205
+      TZ: Asia/Shanghai
+    command:
+      # --default-authentication-plugin=mysql_native_password   ← 删除这一行！
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=1000
+      --default-time-zone='+08:00'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_logs:/var/log/mysql
+      # 如果 my.cnf 中没有敏感配置，可暂时注释掉以排除干扰
+      # - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - mysql_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p181205"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  mysql_net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  mysql_logs:
