@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    hostname: 'gitlab.local'  # 与 external_url 主机名一致
+    container_name: gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+
+        # --- 安全与访问控制 ---
+        gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1']
+
+        # --- 关闭不需要的服务（节省内存/CPU）---
+        alertmanager['enable'] = false
+        node_exporter['enable'] = false
+        redis_exporter['enable'] = false
+        postgres_exporter['enable'] = false
+        gitlab_exporter['enable'] = false
+
+        mattermost['enable'] = false
+        gitlab_rails['elasticsearch_enabled'] = false
+
+        # --- 性能调优 ---
+        sidekiq['max_concurrency'] = 5
+        gitlab_rails['check_for_updates'] = false
+
+        # 注意：不要写 gitlab-runner['enable'] = false（无效且报错）
+
+    ports:
+      - '8083:80'   # HTTP
+      - '8084:443'  # HTTPS（虽未启用，但映射备用）
+      - '8085:22'   # SSH for Git
+    volumes:
+      - './config:/etc/gitlab'
+      - './logs:/var/log/gitlab'
+      - './data:/var/opt/gitlab'
+    shm_size: '256m'
