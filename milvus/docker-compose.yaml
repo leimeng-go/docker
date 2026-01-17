@@ -1,0 +1,98 @@
+# Milvus 2.4.4 单节点 Docker Compose 配置
+# 适配开发/测试场景，数据持久化存储，资源限制合理
+version: '3.8'
+
+services:
+  # ETCD：Milvus 元数据存储
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  # MinIO：Milvus 向量数据存储
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9000:9000"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  # Milvus 核心服务（单节点）
+  milvus-standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.4.4
+    command: ["milvus", "run", "standalone"]
+    environment:
+      # 基础配置
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      # 日志配置
+      MILVUS_LOG_LEVEL: info
+      MILVUS_LOG_FILE: /var/lib/milvus/logs/milvus.log
+      # 性能配置（单节点优化）
+      CPU_NUM: 4          # 占用CPU核心数，根据服务器调整
+      MEMORY_LIMIT: 2G    # 内存限制，最低2G，建议4G+
+    volumes:
+      # 数据持久化存储（关键：删除容器后数据不丢失）
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+    ports:
+      # Milvus 核心端口（Go项目连接用）
+      - "19530:19530"
+      # Milvus 监控端口（可选，用于查看监控）
+      - "9091:9091"
+    depends_on:
+      # 依赖 ETCD/MinIO 启动成功后再启动
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    # 资源限制（避免占用过多服务器资源）
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - milvus
+
+# 自定义网络（隔离 Milvus 服务）
+networks:
+  milvus:
+    driver: bridge
+
+# 数据卷（统一管理所有持久化数据）
+volumes:
+  etcd:
+  minio:
+  milvus:

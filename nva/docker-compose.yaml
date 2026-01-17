@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    ports:
+      - "4533:4533"
+    environment:
+      ND_MUSICFOLDER: /music
+      ND_DATAFOLDER: /data
+      ND_LOGLEVEL: info
+      # 可选：设置默认语言为中文
+      ND_LANG: zh-Hans
+    volumes:
+      - /your/music/path:/music:ro
+      - /your/navidrome/data:/data
+    restart: unless-stopped

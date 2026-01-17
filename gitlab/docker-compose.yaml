@@ -3,37 +3,43 @@ services:
   gitlab:
     image: 'gitlab/gitlab-ce:latest'
     restart: always
-    hostname: 'gitlab.local'  # 与 external_url 主机名一致
+    hostname: 'gitlab.local'  # 必须与 external_url 主机名一致
     container_name: gitlab
     environment:
       GITLAB_OMNIBUS_CONFIG: |
+        # --- 基础 URL ---
         external_url 'http://gitlab.local'
 
-        # --- 安全与访问控制 ---
+        # --- 安全：允许本地监控访问 ---
         gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1']
 
-        # --- 关闭不需要的服务（节省内存/CPU）---
-        alertmanager['enable'] = false
-        node_exporter['enable'] = false
-        redis_exporter['enable'] = false
-        postgres_exporter['enable'] = false
-        gitlab_exporter['enable'] = false
+        # --- 关闭非必要组件（节省内存，但不影响核心功能）---
+        # Prometheus 监控栈（CE 中可选，关闭后仍可正常使用 GitLab）
+        prometheus_monitoring['enable'] = false
 
-        mattermost['enable'] = false
-        gitlab_rails['elasticsearch_enabled'] = false
+        # 其他可选集成（明确支持关闭）
+        mattermost['enable'] = false                # 聊天
+        gitlab_rails['elasticsearch_enabled'] = false  # 全文搜索
 
-        # --- 性能调优 ---
-        sidekiq['max_concurrency'] = 5
-        gitlab_rails['check_for_updates'] = false
+        # --- 移除性能限制（使用默认值）---
+        # sidekiq['max_concurrency'] = 25     ← 使用默认（约 25）
+        # puma['worker_processes'] = 3        ← 使用默认
+        # 不设置即为官方推荐值
 
-        # 注意：不要写 gitlab-runner['enable'] = false（无效且报错）
+        # --- 其他优化（可选）---
+        gitlab_rails['check_for_updates'] = false   # 关闭版本检查（不影响性能）
+
+        # ⚠️ 以下配置在 GitLab 18.x CE 中无效，请勿添加：
+        # - grafana['...']
+        # - pages['...']
+        # - gitlab-runner['...']
 
     ports:
-      - '8083:80'   # HTTP
-      - '8084:443'  # HTTPS（虽未启用，但映射备用）
+      - '8083:80'   # HTTP 访问
+      - '8084:443'  # HTTPS（备用）
       - '8085:22'   # SSH for Git
     volumes:
       - './config:/etc/gitlab'
       - './logs:/var/log/gitlab'
       - './data:/var/opt/gitlab'
-    shm_size: '256m'
+    shm_size: '256m'  # 必需！Gitaly 依赖

@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  code-server:
+    # 镜像源：官方镜像（国内环境建议换为镜像源或 linuxserver 镜像）
+    image: codercom/code-server:latest 
+    # image: linuxserver/code-server:latest # 国内推荐备选
+    
+    container_name: code-server
+    restart: unless-stopped
+    # 端口映射：将宿主机的 8080 映射到容器的 8080
+    # 如果 8080 被占用，可以把前面的 8080 改成 8888 或其他端口
+    ports:
+      - "8080:8080"
+    
+    environment:
+      # 1. 设置登录密码 (非常重要，请修改!)
+      - PASSWORD=YourStrongPassword123
+      # 2. 设置时区为上海
+      - TZ=Asia/Shanghai
+      # 3. 设置工作区路径（容器内路径）
+      - DEFAULT_WORKSPACE=/home/coder/workspace
+      
+    volumes:
+      # 1. 挂载配置目录：保存插件、设置、历史记录
+      - ./config:/home/coder/.config
+      # 2. 挂载工作目录：保存你的代码
+      - ./workspace:/home/coder/workspace
+      # 3. (可选) 挂载宿主机 Docker，以便在容器内管理 Docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+    # 如果使用非 root 用户运行，取消注释并修改 UID/GID
+    # user: "1000:1000"
