@@ -52,14 +52,15 @@ RUN go install -v golang.org/x/tools/gopls@latest && \
     go install -v github.com/go-delve/delve/cmd/dlv@latest && \
     go install -v github.com/haya14busa/goplay/cmd/goplay@latest && \
     go install -v github.com/josharian/impl@latest && \
-    go install -v github.com/cweill/gotests/gotests@latest
-
-# 安装 VS Code 插件 (将插件安装放在最后，方便后续增删)
-RUN code-server --install-extension golang.Go && \
-    code-server --install-extension donjayamanne.githistory && \
-    code-server --install-extension eamodio.gitlens && \
-    code-server --install-extension ms-vscode.makefile-tools && \
-    code-server --install-extension ms-ceintl.vscode-language-pack-zh-hans
+    go install -v github.com/cweill/gotests/gotests@latest 
+# 安装 VS Code 插件 (拆分安装以排查失败项并优化缓存)
+RUN code-server --install-extension golang.go
+RUN code-server --install-extension donjayamanne.githistory
+RUN code-server --install-extension eamodio.gitlens
+RUN code-server --install-extension ms-vscode.makefile-tools
+RUN code-server --install-extension ms-ceintl.vscode-language-pack-zh-hans
+RUN code-server --install-extension dsznajder.es7-react-js-snippets
+# 注：xiaoxin-technology.goctl 插件在 code-server 默认的 Open VSX 市场中不存在，建议启动后手动安装
 
 # 默认启动命令（通常不需要改，code-server 镜像里已经定义了）
 # CMD ["code-server"]
