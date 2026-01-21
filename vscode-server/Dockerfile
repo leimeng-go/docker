@@ -22,15 +22,15 @@ RUN apt-get update && \
     # 配置 npm 使用淘宝镜像
     npm config set registry https://registry.npmmirror.com && \
     # 安装 Go (使用国内镜像)
-    wget -q https://golang.google.cn/dl/go1.23.4.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz && \
-    rm -f go1.23.4.linux-amd64.tar.gz && \
+    wget -q https://golang.google.cn/dl/go1.25.6.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.6.linux-amd64.tar.gz && \
+    rm -f go1.25.6.linux-amd64.tar.gz && \
     # 清理缓存
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # 设置环境变量 (Go)
-ENV PATH="/usr/local/go/bin:${PATH}"
+ENV PATH="/usr/local/go/bin:/home/coder/go/bin:${PATH}"
 ENV GOPROXY="https://goproxy.cn,direct"
 ENV GOMODCACHE="/home/coder/go/pkg/mod"
 ENV GOCACHE="/home/coder/go/cache"
@@ -38,9 +38,28 @@ ENV GOCACHE="/home/coder/go/cache"
 # 设置环境变量 (Node.js)
 # Node.js 的环境变量通常由系统安装自动配置
 
-# 确保 /home/coder 目录权限
+# 切换到 coder 用户并配置基础环境
 USER coder
-RUN mkdir -p /home/coder/go/pkg/mod /home/coder/go/cache
+RUN mkdir -p /home/coder/go/pkg/mod /home/coder/go/cache && \
+    # 在 coder 用户的 .bashrc 中添加环境变量，确保交互式 shell 中也能使用
+    echo 'export PATH="/usr/local/go/bin:/home/coder/go/bin:$PATH"' >> /home/coder/.bashrc && \
+    echo 'export GOPROXY="https://goproxy.cn,direct"' >> /home/coder/.bashrc && \
+    echo 'export GOMODCACHE="/home/coder/go/pkg/mod"' >> /home/coder/.bashrc && \
+    echo 'export GOCACHE="/home/coder/go/cache"' >> /home/coder/.bashrc
+
+# 预装 Go 核心工具 (这些工具较大且更新频率较低)
+RUN go install -v golang.org/x/tools/gopls@latest && \
+    go install -v github.com/go-delve/delve/cmd/dlv@latest && \
+    go install -v github.com/haya14busa/goplay/cmd/goplay@latest && \
+    go install -v github.com/josharian/impl@latest && \
+    go install -v github.com/cweill/gotests/gotests@latest
+
+# 安装 VS Code 插件 (将插件安装放在最后，方便后续增删)
+RUN code-server --install-extension golang.Go && \
+    code-server --install-extension donjayamanne.githistory && \
+    code-server --install-extension eamodio.gitlens && \
+    code-server --install-extension ms-vscode.makefile-tools && \
+    code-server --install-extension ms-ceintl.vscode-language-pack-zh-hans
 
 # 默认启动命令（通常不需要改，code-server 镜像里已经定义了）
 # CMD ["code-server"]
